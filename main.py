@@ -1,20 +1,33 @@
 from constants import *
+from helpers import *
 
 from discord.ext import commands
 
-prefix = "!"
-bot = commands.Bot(command_prefix=prefix)
-
+bot = commands.Bot(command_prefix="!")
 
 @bot.event
 async def on_ready():
     print("Everything's all ready to go~")
+    print("Starting lineup is {}".format(await get_starting_lineup(bot.guilds[0])))
 
 @bot.event
 async def on_message(message):
     print("The message's content was", message.content)
     await bot.process_commands(message)
 
+@bot.event
+async def on_raw_reaction_add(payload):
+    reacter = await bot.fetch_user(payload.user_id)
+    emoji = payload.emoji
+    ctx = bot.get_channel(payload.channel_id)
+    msg = await ctx.fetch_message(payload.message_id)
+    ldm = await latest_doodle_message(ctx, bot.user)
+    if msg.id == ldm.id:
+        reacters = [i.name for i in await [r for r in await latest_doodle_reactions(ctx, bot.user) if r.emoji == CHECK_MARK][0].users().flatten()]
+        print(reacters)
+        if all(user in reacters for user in await get_starting_lineup(ctx.guild) ):
+            # Every player/trialee has voted
+            await dstat(ctx)
 
 @bot.command()
 async def prac(ctx, *, content):
@@ -23,7 +36,6 @@ async def prac(ctx, *, content):
     usage: <space separated list of times>;<space separated list of participants>: creates a 'prac' with those participants for each time specified. Makes announcements and activates reminder system. Times are specified as follows. One of MA|TI|KE|TO|PE|LA|SU (caps insensitive). Can optionally have a time of day, specified like so: MA:1700, clock format is 24h military.
     """
     pass
-
 
 @bot.command()
 async def sub(ctx, *, content):
@@ -39,24 +51,27 @@ async def dstart(ctx):
     Posts a single doodle-esque message with reactions to communicate with.
     """
     msg = await ctx.send(DOODLE_MESSAGE)
-    for emoji in WEEKDAY_EMOJIS:
-        await msg.add_reaction(emoji)
-    #await msg.pin()
 
+    for emoji in get_dayems(msg.guild):
+        await msg.add_reaction(emoji)
+    await msg.add_reaction(CHECK_MARK)
 
 @bot.command()
 async def dstat(ctx):
     """
-    Shows days that five or more users have approved. Assume that only the latest dstart is legit.
+    Shows status of last doodle post.
     """
-    lastdmsg = await ctx.history().get(content=DOODLE_MESSAGE, author=bot.user)
     load = {}
-    for r in lastdmsg.reactions:
+    for r in await latest_doodle_reactions(ctx, bot.user):
         users = [i.name for i in await r.users().flatten() if not i.id == bot.user.id]
-        load[r.emoji.name] = users
+        if type(r.emoji) is str:
+            load[r.emoji] = users
+        else:
+            load[r.emoji.name] = users
 
-    text = "```"+"\n".join(["{}: {}, {}".format(day, len(load[day]), ", ".join(load[day])) for day in PLAIN_DAYS])+"```"
+    lines = ["{}, {}: {}".format(day, len(load[day]), ", ".join(load[day])) for day in PLAIN_DAYS]
+    lines.append("\nready, {}: {}".format(len(load[CHECK_MARK]), ", ".join(load[CHECK_MARK])))
+    text = "```"+"\n".join(lines)+"```"
     await ctx.send(text)
-
 
 bot.run("NTg1NTIwMDc1NjMzNTkwMjgz.XPargg.5kBbaTcIWXFeCQTPipsJdKRRqCk")
