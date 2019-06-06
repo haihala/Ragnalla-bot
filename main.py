@@ -20,13 +20,16 @@ async def on_raw_reaction_add(payload):
     reacter = await bot.fetch_user(payload.user_id)
     emoji = payload.emoji
     chan = bot.get_channel(payload.channel_id)
-    msg = await ctx.fetch_message(payload.message_id)
+    msg = await chan.fetch_message(payload.message_id)
     ldm = await latest_doodle_message(chan, bot.user)
     if msg.id == ldm.id:
         reacters = [i.name for i in await [r for r in await latest_doodle_reactions(chan, bot.user) if r.emoji == CHECK_MARK][0].users().flatten()]
         sl = await get_starting_lineup(chan.guild)
         if all(user in reacters for user in sl ):
-            await doodle.invoke()
+            msg.content = "get"
+            ctx = await bot.get_context(msg)
+            ctx.command = doodle
+            await bot.invoke(ctx)
 
 @bot.command()
 async def prac(ctx, *, content):
@@ -47,8 +50,8 @@ async def sub(ctx, *, content):
 @bot.group()
 async def doodle(ctx):
     if ctx.invoked_subcommand is None:
+        print(ctx.__dict__)
         await ctx.send(DOODLE_INVALID_SUBCOMMAND)
-
 
 @doodle.command()
 async def new(ctx):
