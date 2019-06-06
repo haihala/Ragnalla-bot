@@ -80,9 +80,14 @@ async def get(ctx):
 
     args = ctx.message.content.split()[2:]
     if "-v" in args or "--verbose" in args:
-        lines = ["{}, {}: {}".format(day, len(load[day]), ", ".join(load[day])) for day in PLAIN_DAYS]
-        lines.append("\nready, {}: {}".format(len(load[CHECK_MARK]), ", ".join(load[CHECK_MARK])))
-        text = "```"+"\n".join(lines)+"```"
+        names = set(user for users in load.values() for user in users)
+        days = {day: load[day] for day in PLAIN_DAYS}
+        ready = load[CHECK_MARK]
+
+        text = verbose_doodle_output(names, days, ready)
+        # lines = ["{}, {}: {}".format(day, len(load[day]), ", ".join(load[day])) for day in PLAIN_DAYS]
+        # lines.append("\nready, {}: {}".format(len(load[CHECK_MARK]), ", ".join(load[CHECK_MARK])))
+        # text = "```"+"\n".join(lines)+"```"
     else:
         text = "```"
         load = {key: value for key, value in load.items() if key in PLAIN_DAYS}
