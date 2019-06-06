@@ -70,21 +70,36 @@ async def get(ctx):
     """
     Shows status of last doodle post. When every player and trialee has readied this will be automatically printed. Use `-v` or `--verbose` for more information
     """
-    args = ctx.message.content.split()[2:]
-    if "-v" or "--verbose" in args:
-        load = {}
-        for r in await latest_doodle_reactions(ctx, bot.user):
-            users = [i.name for i in await r.users().flatten() if not i.id == bot.user.id]
-            if type(r.emoji) is str:
-                load[r.emoji] = users
-            else:
-                load[r.emoji.name] = users
+    load = {}
+    for r in await latest_doodle_reactions(ctx, bot.user):
+        users = [i.name for i in await r.users().flatten() if not i.id == bot.user.id]
+        if type(r.emoji) is str:
+            load[r.emoji] = users
+        else:
+            load[r.emoji.name] = users
 
+    args = ctx.message.content.split()[2:]
+    if "-v" in args or "--verbose" in args:
         lines = ["{}, {}: {}".format(day, len(load[day]), ", ".join(load[day])) for day in PLAIN_DAYS]
         lines.append("\nready, {}: {}".format(len(load[CHECK_MARK]), ", ".join(load[CHECK_MARK])))
         text = "```"+"\n".join(lines)+"```"
     else:
-        text = "test"
+        text = "```"
+        load = {key: value for key, value in load.items() if key in PLAIN_DAYS}
+        full_days = [i for i in load if len(load[i])>=5]
+
+        if full_days:
+            text += "\nFull days: {}".format(", ".join(full_days))
+
+        i = 4
+        while text == "```" and i:
+            l = [j for j in load if len(load[j])==i]
+            if l:
+                text += "\n{}/5 days: {}".format(i, ", ".join(l))
+            i -= 1
+
+        text += "```"
+
     await ctx.send(text)
 
 with open("app.token") as f:
