@@ -49,6 +49,9 @@ async def sub(ctx, *, content):
 
 @bot.group()
 async def doodle(ctx):
+    """
+    Doodle-esque scheduling system.
+    """
     if ctx.invoked_subcommand is None:
         print(ctx.__dict__)
         await ctx.send(DOODLE_INVALID_SUBCOMMAND)
@@ -67,19 +70,24 @@ async def new(ctx):
 @doodle.command()
 async def get(ctx):
     """
-    Shows status of last doodle post.
+    Shows status of last doodle post. When every player and trialee has readied this will be automatically printed. Use `-v` or `--verbose` for more information
     """
-    load = {}
-    for r in await latest_doodle_reactions(ctx, bot.user):
-        users = [i.name for i in await r.users().flatten() if not i.id == bot.user.id]
-        if type(r.emoji) is str:
-            load[r.emoji] = users
-        else:
-            load[r.emoji.name] = users
+    args = ctx.message.content.split()[2:]
+    if "-v" or "--verbose" in args:
+        load = {}
+        for r in await latest_doodle_reactions(ctx, bot.user):
+            users = [i.name for i in await r.users().flatten() if not i.id == bot.user.id]
+            if type(r.emoji) is str:
+                load[r.emoji] = users
+            else:
+                load[r.emoji.name] = users
 
-    lines = ["{}, {}: {}".format(day, len(load[day]), ", ".join(load[day])) for day in PLAIN_DAYS]
-    lines.append("\nready, {}: {}".format(len(load[CHECK_MARK]), ", ".join(load[CHECK_MARK])))
-    text = "```"+"\n".join(lines)+"```"
+        lines = ["{}, {}: {}".format(day, len(load[day]), ", ".join(load[day])) for day in PLAIN_DAYS]
+        lines.append("\nready, {}: {}".format(len(load[CHECK_MARK]), ", ".join(load[CHECK_MARK])))
+        text = "```"+"\n".join(lines)+"```"
+    else:
+        text = "test"
     await ctx.send(text)
 
-bot.run("NTg1NTIwMDc1NjMzNTkwMjgz.XPargg.5kBbaTcIWXFeCQTPipsJdKRRqCk")
+with open("token.txt") as f:
+    bot.run(f.read().strip())
