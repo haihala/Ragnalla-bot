@@ -22,11 +22,12 @@ async def on_raw_reaction_add(payload):
     chan = bot.get_channel(payload.channel_id)
     msg = await chan.fetch_message(payload.message_id)
     ldm = await latest_doodle_message(chan, bot.user)
-    if ldm and msg:
-        if msg.id == ldm.id:
-            reacters = [i.name for i in await [r for r in await latest_doodle_reactions(chan, bot.user) if r.emoji == CHECK_MARK][0].users().flatten()]
+    if ldm and msg and msg.id == ldm.id:
+        reacts = await latest_doodle_reactions(chan, bot.user)
+        if any(r.emoji == CHECK_MARK for r in reacts):
+            ready_players = [i.name for i in await find(lambda r: r.emoji == CHECK_MARK, reacts).users().flatten()]
             starting_lineup = await get_starting_lineup(chan.guild)
-            if all(user in reacters for user in starting_lineup ):
+            if all(user in ready_players for user in starting_lineup):
                 await get.invoke(await bot.get_context(msg))
 
 @bot.command()

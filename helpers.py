@@ -25,3 +25,9 @@ def verbose_doodle_output(names, days, ready):
                 for name in names)
 
     return "```\n{header}\n{status}\n```".format(header=header, status='\n'.join(lines))
+
+def find(p, seq):
+    """Return first item in seq where p(item) == True"""
+    for x in seq:
+        if p(x):
+            return x
