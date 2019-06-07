@@ -1,4 +1,4 @@
-DOODLE_MESSAGE = "@players @trial doodel tim!"
+DOODLE_MESSAGE = "<@&543751882104111112> <@&579384808996733122> doodle"
 PLAIN_DAYS = ['ma', 'ti', 'ke', 'to', 'pe', 'la', 'su']
 
 #Emojis

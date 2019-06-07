@@ -60,10 +60,21 @@ async def sub(ctx, *, content):
     """
     # Sanitize
     bits = content.split()
-    players_in = [i for i in bits if i and i[0] == '+']
-    players_out = [i for i in bits if i and i[0] == '-']
+    players_in = [i[1:] for i in bits if i and i[0] == '+']
+    players_out = [i[1:] for i in bits if i and i[0] == '-']
     # Add ability to target a specific prac
+    sub_prac(players_in, players_out)
 
+@prac.command()
+async def move(ctx, *, content):
+    # Sanitize
+    times = content.split()
+    destination = get_time(times[-1])
+    if len(times) == 2:
+        origin = get_time(times[0])
+    else:
+        origin = None
+    move_prac(origin, destination)
 
 @bot.group()
 async def doodle(ctx):

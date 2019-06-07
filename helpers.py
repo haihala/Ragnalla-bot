@@ -3,6 +3,7 @@ from prac import Prac
 
 import datetime
 from time import time
+from math import inf
 
 def get_dayems(guild):
     ems = {em.name: em for em in guild.emojis}
@@ -61,42 +62,49 @@ def get_time(string):
         result += 7*24*60*60
     return result
 
+def get_pracs():
+    with open(database) as f:
+        tokens = [i.split() for i in f.readlines() if i]
+    return [Prac(int(i[0]), i[1:]) for i in tokens]
+
+def get_prac(timestamp):
+    if not timestamp:
+        # If no target time provided, go with first that hasn't yet gone.
+        prac = min(get_pracs(), key=lambda x: x.time+inf*x.time<time())
+        if prac.time < time():
+            # No future practice sessions
+            raise Exception("No active sessions")
+        else:
+            return prac
+    else:
+        pracs = [i for i in pracs if i.time == target_time]
+        if pracs:
+            return pracs[0]
+        else:
+            # Time was provided, yet it didn't match a practice session.
+            raise Exception("Such a timestamp doesn't exist")
+
 def add_prac(prac):
     with open(database, 'a') as f:
         f.write("{} {}\n".format(prac.time, " ".join(prac.players)))
 
 def del_prac(timestamp):
-    pracs = [i for i in get_pracs() if i.time != str(timestamp)]
+    pracs = [i for i in get_pracs() if i.time != timestamp]
     with open(database, 'w') as f:
         for prac in pracs:
             f.write("{} {}\n".format(prac.time, " ".join(prac.players)))
 
-def get_pracs():
-    with open(database) as f:
-        tokens = [i.split() for i in f.readlines() if i]
-    return [Prac(i[0], i[1:]) for i in tokens]
+def move_prac(origin, destination):
+    prac = get_prac(origin)
+    if prac:
+        del_prac(prac.time)
+        prac.time = destination
+        add_prac(prac)
 
-def change_prac(players_in, players_out, target_time=None):
+def sub_prac(players_in, players_out, target_time=None):
     pracs = get_pracs()
-    if not pracs:
-        # No sessions exist, so none can be changed.
-        return
-    if not target_time:
-        # If no target time provided, go with first that hasn't yet gone.
-        prac = min(pracs, lambda x: x.time+inf*int(x.time<time()))
-        if prac.time < time():
-            # No future practice sessions
-            raise Exception("No active sessions")
-        target_time = prac.time
-    else:
-        pracs = [i for i in pracs if i.time == str(target_time)]
-
-        if pracs:
-            prac = pracs[0]
-        else:
-            # Time was provided, yet it didn't match a practice session.
-            raise Exception("Such a timestamp doesn't exist")
-
+    prac = get_prac(target_time)
+    target_time = prac.time
     del_prac(target_time)
 
     new_players = set(prac.players)
@@ -105,5 +113,3 @@ def change_prac(players_in, players_out, target_time=None):
 
     add_prac(Prac(target_time, new_players))
 
-
-del_prac(1560178800)
