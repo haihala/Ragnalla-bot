@@ -1,6 +1,7 @@
 from constants import *
 
 import datetime
+from time import time
 
 def get_dayems(guild):
     ems = {em.name: em for em in guild.emojis}
@@ -39,14 +40,10 @@ def get_time(string):
     Return epoch time of practice session specified by string
     """
     spl = string.lower().split(':')
-    day = spl[0] 
-    # number of days to add to reference monday
-    daynum = PLAIN_DAYS.index(day)
-    
+    daynum = PLAIN_DAYS.index(spl[0])
+
     d = datetime.datetime.combine(datetime.datetime.today(), datetime.datetime.min.time())
     days_ahead = daynum - d.weekday()
-    if days_ahead < 0: # Target day already happened this week
-        days_ahead += 7
     target_day = d + datetime.timedelta(days_ahead)
     daytime = int(target_day.timestamp())
 
@@ -58,5 +55,52 @@ def get_time(string):
     minute = int(tod[2:])
 
     clocktime = 60 * (60 * hour + minute)
-    return daytime + clocktime
+    result = daytime + clocktime
+    if result-time()<0:
+        result += 7*24*60*60
+    return result
+
+def add_prac(prac):
+    with open(database, 'a') as f:
+        f.write("{} {}\n".format(prac.time, " ".join(prac.players)))
+
+def del_prac(timestamp):
+    pracs = [i for i in get_pracs() if i.time != timestamp]
+    with open(database, 'w') as f:
+        for prac in pracs:
+            f.write("{} {}\n".format(prac.time, " ".join(prac.players)))
+
+def get_pracs():
+    with open(database) as f:
+        tokens = [i.split() for i in f.readlines() if i]
+    return [Prac(i[0], i[1:]) for i in tokens]
+
+def change_prac(players_in, players_out, target_time=None):
+    pracs = get_pracs()
+    if not pracs:
+        # No sessions exist, so none can be changed.
+        return
+    if not target_time:
+        # If no target time provided, go with first that hasn't yet gone.
+        prac = min(pracs, lambda x: x.time+inf*int(x.time<time()))
+        if prac.time < time():
+            # No future practice sessions
+            return
+        target_time = prac.time
+    else:
+        pracs = [i for i in pracs if i.time == target_time]
+
+        if pracs:
+            prac = pracs[0]
+        else:
+            # Time was provided, yet it didn't match a practice session.
+            return
+
+    del_prac(target_time)
+
+    new_players = set(prac.players)
+    new_players -= set(players_out)
+    new_players += set(players_in)
+
+    add_prac(Prac(target_time, new_players))
 

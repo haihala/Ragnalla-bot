@@ -1,3 +1,4 @@
+from prac import Prac
 from constants import *
 from helpers import *
 
@@ -30,22 +31,39 @@ async def on_raw_reaction_add(payload):
             if all(user in ready_players for user in starting_lineup):
                 await get.invoke(await bot.get_context(msg))
 
-@bot.command()
-async def prac(ctx, *, content):
+
+@bot.group()
+async def prac(ctx):
+    if ctx.invoked_subcommand is None:
+        print(ctx.__dict__)
+        await ctx.send(PRAC_INVALID_SUBCOMMAND)
+
+@prac.command()
+async def new(ctx, *, content):
     """
     Creates a prac session. Sets up reminders and makes the announcement.
     usage: <space separated list of times>;<space separated list of participants>: creates a 'prac' with those participants for each time specified. Makes announcements and activates reminder system. Times are specified as follows. One of MA|TI|KE|TO|PE|LA|SU (caps insensitive). Can optionally have a time of day, specified like so: MA:1700, clock format is 24h military.
     """
+    # Sanitize
     players = content.split()
-    time = get_time(players.pop(0))
+    timestr = players.pop(0)
 
-@bot.command()
+    epoch = get_time(timestr)
+
+    add_prac(Prac(epoch, players))
+
+@prac.command()
 async def sub(ctx, *, content):
     """
     Replaces one player in a prac session with another.
     usage: <day of prac> <list of corretly prefixed players>: prefix player name with '-' to remove and with '+' to add.
     """
-    pass
+    # Sanitize
+    bits = content.split()
+    players_in = [i for i in bits if i and i[0] == '+']
+    players_out = [i for i in bits if i and i[0] == '-']
+    # Add ability to target a specific prac
+
 
 @bot.group()
 async def doodle(ctx):
@@ -109,5 +127,5 @@ async def get(ctx):
 
     await ctx.send(text)
 
-with open("app.token") as f:
+with open(token) as f:
     bot.run(f.read().strip())
