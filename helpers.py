@@ -1,4 +1,5 @@
 from constants import *
+from prac import Prac
 
 import datetime
 from time import time
@@ -65,7 +66,7 @@ def add_prac(prac):
         f.write("{} {}\n".format(prac.time, " ".join(prac.players)))
 
 def del_prac(timestamp):
-    pracs = [i for i in get_pracs() if i.time != timestamp]
+    pracs = [i for i in get_pracs() if i.time != str(timestamp)]
     with open(database, 'w') as f:
         for prac in pracs:
             f.write("{} {}\n".format(prac.time, " ".join(prac.players)))
@@ -85,22 +86,24 @@ def change_prac(players_in, players_out, target_time=None):
         prac = min(pracs, lambda x: x.time+inf*int(x.time<time()))
         if prac.time < time():
             # No future practice sessions
-            return
+            raise Exception("No active sessions")
         target_time = prac.time
     else:
-        pracs = [i for i in pracs if i.time == target_time]
+        pracs = [i for i in pracs if i.time == str(target_time)]
 
         if pracs:
             prac = pracs[0]
         else:
             # Time was provided, yet it didn't match a practice session.
-            return
+            raise Exception("Such a timestamp doesn't exist")
 
     del_prac(target_time)
 
     new_players = set(prac.players)
     new_players -= set(players_out)
-    new_players += set(players_in)
+    new_players = new_players.union(set(players_in))
 
     add_prac(Prac(target_time, new_players))
 
+
+del_prac(1560178800)
