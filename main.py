@@ -36,7 +36,8 @@ async def prac(ctx, *, content):
     Creates a prac session. Sets up reminders and makes the announcement.
     usage: <space separated list of times>;<space separated list of participants>: creates a 'prac' with those participants for each time specified. Makes announcements and activates reminder system. Times are specified as follows. One of MA|TI|KE|TO|PE|LA|SU (caps insensitive). Can optionally have a time of day, specified like so: MA:1700, clock format is 24h military.
     """
-    pass
+    players = content.split()
+    time = get_time(players.pop(0))
 
 @bot.command()
 async def sub(ctx, *, content):

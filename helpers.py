@@ -1,5 +1,7 @@
 from constants import *
 
+import datetime
+
 def get_dayems(guild):
     ems = {em.name: em for em in guild.emojis}
     return [ems[d] for d in PLAIN_DAYS]
@@ -31,3 +33,30 @@ def find(p, seq):
     for x in seq:
         if p(x):
             return x
+
+def get_time(string):
+    """
+    Return epoch time of practice session specified by string
+    """
+    spl = string.lower().split(':')
+    day = spl[0] 
+    # number of days to add to reference monday
+    daynum = PLAIN_DAYS.index(day)
+    
+    d = datetime.datetime.combine(datetime.datetime.today(), datetime.datetime.min.time())
+    days_ahead = daynum - d.weekday()
+    if days_ahead < 0: # Target day already happened this week
+        days_ahead += 7
+    target_day = d + datetime.timedelta(days_ahead)
+    daytime = int(target_day.timestamp())
+
+    if len(spl) == 2:
+        tod = spl[1]
+    else:
+        tod = "1800"
+    hour = int(tod[:2])
+    minute = int(tod[2:])
+
+    clocktime = 60 * (60 * hour + minute)
+    return daytime + clocktime
+
