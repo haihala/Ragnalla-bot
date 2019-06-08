@@ -1,27 +1,14 @@
 from .constants import CONF_DIR, database
-from prac_db import get_pracs
+from .prac_db import get_pracs
 
 from time import time
 from json import dump, load
 from os.path import join as pjoin
 
 class Reminder:
-    def __init__(self, guild):
+    def __init__(self):
         # {user: {prac or confirm(str(type+time)): [alarms sent ("seconds before")]}}
         self.processed = {}
-
-    def load_config(self, user):
-        # First load the global configuration, then put their personal on top of that.
-        self.conf[user] = self.load("global")
-        self.conf[user].update(self.load(user))
-
-    def update_config(self, user, update)
-        current = self.load(user)
-        current.update(update)
-        self.save(user)
-
-        # Reload for that user
-        self.load_config(user)
 
     def load(self, account):
         try:

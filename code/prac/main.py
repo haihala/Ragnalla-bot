@@ -1,3 +1,5 @@
+from ..helpers import get_spam_channel, get_announcement_channel, get_voice_channel
+
 from .prac_db import *
 from .constants import *
 from .reminder import Reminder
@@ -14,8 +16,8 @@ class Prac(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.reminder = Reminder()
-        self.spamchan = get_spam_channel()
-        self.tick.start()
+        self.voice_notification.start()
+        self.prac_ack.start()
 
     @commands.group(pass_context=True)
     async def prac(self, ctx):
@@ -87,11 +89,10 @@ class Prac(commands.Cog):
         text = "```{}```".format("\n".join(i.pretty(ctx.guild) for i in active_sessions))
         await ctx.send(text)
 
-    async def notify(self, who, what, where):
-
     @tasks.loop(seconds=5.0)
     async def prac_ack(self):
-        new_reminders = await self.reminder.ack_notifications()
+        self.spamchan = get_spam_channel(self.bot.guilds[0])
+        new_reminders = self.reminder.ack_notifications()
 
         for user, sessions in new_reminders.items():
             for session in sessions:
@@ -108,7 +109,8 @@ class Prac(commands.Cog):
 
     @tasks.loop(seconds=5.0)
     async def voice_notification(self):
-        new_reminders = await self.reminder.voice_notifications()
+        self.spamchan = get_spam_channel(self.bot.guilds[0])
+        new_reminders = self.reminder.voice_notifications()
         # Check if any new_reminders are in voice. If not, ping them.
         for user, pracs in new_reminders.items():
             if user not in ["<@"+str(i.id)+">" for i in get_voice_channel(bot.guilds[0]).voice_members]:
