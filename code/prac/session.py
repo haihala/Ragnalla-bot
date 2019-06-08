@@ -1,9 +1,10 @@
 from datetime import datetime
 
 class Session:
-    def __init__(self, time, players):
+    def __init__(self, time, players, msg_id=None):
         self.time = time
         self.players = players
+        self.msg_id = msg_id
 
     def pretty(self, guild):
         """

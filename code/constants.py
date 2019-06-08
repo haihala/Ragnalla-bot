@@ -5,3 +5,7 @@ CHECK_MARK = "✅"
 DENY_EMOJI = "👎"
 
 token = "app.token"
+
+tryhard_voice = "tryhard"
+announcements_text = "ilmoitukset"
+spam_text = "bot-spam"

@@ -5,3 +5,7 @@ PRAC_MISSING_TIME = "Missing mandatory time argument."
 PRAC_INVALID_SUBCOMMAND = "Invalid prac command. See help."
 
 database = "pracs.db"
+CONF_DIR = "preferences"
+
+VOICE_MISSING_USER = "{}, could you please join voice."
+MISSING_PRAC_CONFIRMATION = "{}, could you please confirm the prac {}."

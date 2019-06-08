@@ -1,7 +1,11 @@
 from .prac_db import *
 from .constants import *
+from .reminder import Reminder
 
-from discord.ext import commands
+from discord import Game
+from discord.ext import commands, tasks
+
+import asyncio
 
 class Prac(commands.Cog):
     """
@@ -9,6 +13,9 @@ class Prac(commands.Cog):
     """
     def __init__(self, bot):
         self.bot = bot
+        self.reminder = Reminder()
+        self.spamchan = get_spam_channel()
+        self.tick.start()
 
     @commands.group(pass_context=True)
     async def prac(self, ctx):
@@ -80,5 +87,39 @@ class Prac(commands.Cog):
         text = "```{}```".format("\n".join(i.pretty(ctx.guild) for i in active_sessions))
         await ctx.send(text)
 
+    async def notify(self, who, what, where):
+
+    @tasks.loop(seconds=5.0)
+    async def prac_ack(self):
+        new_reminders = await self.reminder.ack_notifications()
+
+        for user, sessions in new_reminders.items():
+            for session in sessions:
+                acknowledged = find(lambda x: x.emoji==CHECK_MARK, bot.get_message(session.msg_id).reaction)
+                if acknowledged:
+                    ready_players = ["<@"+str(i.id)+">" for i in await acknowledged.users().flatten()]
+                    if user not in ready_players:
+                        await self.spamchan.send(MISSING_PRAC_CONFIRMATION.format(user, session.pretty()))
+
+    @prac_ack.before_loop
+    async def before_ack(self):
+        # Wait for bot to be ready before checking for updates.
+        await self.bot.wait_until_ready()
+
+    @tasks.loop(seconds=5.0)
+    async def voice_notification(self):
+        new_reminders = await self.reminder.voice_notifications()
+        # Check if any new_reminders are in voice. If not, ping them.
+        for user, pracs in new_reminders.items():
+            if user not in ["<@"+str(i.id)+">" for i in get_voice_channel(bot.guilds[0]).voice_members]:
+                await self.spamchan.send(VOICE_MISSING_USER.format(user))
+
+    @voice_notification.before_loop
+    async def before_voice(self):
+        # Wait for bot to be ready before checking for updates.
+        await self.bot.wait_until_ready()
+
+
 def setup(bot):
     bot.add_cog(Prac(bot))
+
