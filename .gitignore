@@ -106,5 +106,6 @@ venv.bak/
 # Vim swapfiles
 *.swp
 
-# Token files
+# Discord api token and 'database'
 app.token
+pracs.db
