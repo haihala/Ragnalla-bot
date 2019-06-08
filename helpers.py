@@ -10,7 +10,7 @@ def get_dayems(guild):
     return [ems[d] for d in PLAIN_DAYS]
 
 async def latest_doodle_message(ctx, bot_user):
-    return await ctx.history().get(content=DOODLE_MESSAGE, author=bot_user)
+    return await ctx.history().get(content=DOODLE_NEW_MESSAGE, author=bot_user)
 
 async def latest_doodle_reactions(ctx, bot_user):
     return (await latest_doodle_message(ctx, bot_user)).reactions
@@ -42,6 +42,8 @@ def get_time(string):
     Return epoch time of practice session specified by string
     """
     spl = string.lower().split(':')
+    if spl[0] not in PLAIN_DAYS:
+        return
     daynum = PLAIN_DAYS.index(spl[0])
 
     d = datetime.datetime.combine(datetime.datetime.today(), datetime.datetime.min.time())
@@ -65,24 +67,14 @@ def get_time(string):
 def get_pracs():
     with open(database) as f:
         tokens = [i.split() for i in f.readlines() if i]
-    return [Prac(int(i[0]), i[1:]) for i in tokens]
+    return [Prac(int(i[0]), i[1:]) for i in tokens if int(i[0]) > time()]
 
 def get_prac(timestamp):
     if not timestamp:
         # If no target time provided, go with first that hasn't yet gone.
-        prac = min(get_pracs(), key=lambda x: x.time+inf*x.time<time())
-        if prac.time < time():
-            # No future practice sessions
-            raise Exception("No active sessions")
-        else:
-            return prac
+        return min(get_pracs(), key=lambda x: x.time)
     else:
-        pracs = [i for i in pracs if i.time == target_time]
-        if pracs:
-            return pracs[0]
-        else:
-            # Time was provided, yet it didn't match a practice session.
-            raise Exception("Such a timestamp doesn't exist")
+        return [i for i in pracs if i.time == target_time][0]
 
 def add_prac(prac):
     with open(database, 'a') as f:
@@ -101,13 +93,15 @@ def move_prac(origin, destination):
         prac.time = destination
         add_prac(prac)
 
-def sub_prac(players_in, players_out, target_time=None):
-    pracs = get_pracs()
+def sub_prac(player_diff, target_time=None):
     prac = get_prac(target_time)
     target_time = prac.time
     del_prac(target_time)
 
     new_players = set(prac.players)
+    players_out = set(player_diff).intersection(new_players)
+    players_in = set(player_diff) - players_out
+
     new_players -= set(players_out)
     new_players = new_players.union(set(players_in))
 

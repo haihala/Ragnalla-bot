@@ -8,8 +8,7 @@ bot = commands.Bot(command_prefix="!")
 
 @bot.event
 async def on_ready():
-    print("Everything's all ready to go~")
-    print("Starting lineup is {}".format(await get_starting_lineup(bot.guilds[0])))
+    print("Everything's all ready to go!")
 
 @bot.event
 async def on_message(message):
@@ -42,39 +41,68 @@ async def prac(ctx):
 async def new(ctx, *, content):
     """
     Creates a prac session. Sets up reminders and makes the announcement.
-    usage: <space separated list of times>;<space separated list of participants>: creates a 'prac' with those participants for each time specified. Makes announcements and activates reminder system. Times are specified as follows. One of MA|TI|KE|TO|PE|LA|SU (caps insensitive). Can optionally have a time of day, specified like so: MA:1700, clock format is 24h military.
+    usage: !prac new <timespec> <list of players>: creates a 'prac' with those participants for each time specified. Timespec can be at any point in the command and is specified as followsA One of MA|TI|KE|TO|PE|LA|SU (caps insensitive). Can optionally have a time of day, specified like so: MA:1700, clock format is 24h military. All the following are legal 'ma' 'ma:1600' 'Ma:0300' 'mA'
     """
     # Sanitize
-    players = content.split()
-    timestr = players.pop(0)
-
-    epoch = get_time(timestr)
-
-    add_prac(Prac(epoch, players))
+    bits = content.split()
+    timespec = find(get_time, bits)
+    if timespec:
+        players = [i for i in bits if get_time(i) == None]
+        add_prac(Prac(get_time(timespec), players))
+        await ctx.send(PRAC_ADD_OK)
+        await get_active.invoke(ctx)
+    else:
+        await ctx.send(PRAC_MISSING_TIME)
 
 @prac.command()
 async def sub(ctx, *, content):
     """
-    Replaces one player in a prac session with another.
-    usage: <day of prac> <list of corretly prefixed players>: prefix player name with '-' to remove and with '+' to add.
+    Replaces players in a prac session.
+    usage: !prac sub [timespec] <list of players>: Mentioned players are removed if they are currently in, added if they are out. Time is optional and is specified using the weekday:clock method used in !prac new. Time specification can also appear anywhere in the command, not just as firsts argument. If multiple times are provided, the first is used.
     """
-    # Sanitize
     bits = content.split()
-    players_in = [i[1:] for i in bits if i and i[0] == '+']
-    players_out = [i[1:] for i in bits if i and i[0] == '-']
-    # Add ability to target a specific prac
-    sub_prac(players_in, players_out)
+    timespec = find(get_time, bits)
+    players = [i for i in bits if get_time(i) == None]
+
+    try:
+        sub_prac(players, timespec)
+        await ctx.send(PRAC_SUB_OK)
+        await get_active.invoke(ctx)
+    except ValueError as e:
+        await ctx.send(str(e))
 
 @prac.command()
 async def move(ctx, *, content):
-    # Sanitize
-    times = content.split()
-    destination = get_time(times[-1])
-    if len(times) == 2:
-        origin = get_time(times[0])
-    else:
+    """
+    Moves a prac session to another time.
+    usage: !prac move [current timespec] <destination timespec> If current timespec isn't provided, the first upcoming prac is assumed. If current timespec is provided, it has to be the first one. Timespec format is the same as in !prac new
+    """
+
+    times = [get_time(i) for i in content.split() if get_time(i) != None]
+    if len(times) == 1:
         origin = None
-    move_prac(origin, destination)
+        destination = times[-1]
+    elif len(times) == 2:
+        origin = times[0]
+        destination = times[-1]
+    else:
+        print(times)
+        print(content)
+        await ctx.send(PRAC_MISSING_TIME)
+        return
+
+    try:
+        move_prac(origin, destination)
+        await ctx.send(PRAC_MOVE_OK)
+        await get_active.invoke(ctx)
+    except ValueError as e:
+        await ctx.send(str(e))
+
+@prac.command()
+async def get(ctx):
+    active_sessions = get_pracs()
+    text = "```{}```".format("\n".join(i.pretty(ctx.guild) for i in active_sessions))
+    await ctx.send(text)
 
 @bot.group()
 async def doodle(ctx):
@@ -90,7 +118,7 @@ async def new(ctx):
     """
     Posts a single doodle-esque message with reactions to communicate with.
     """
-    msg = await ctx.send(DOODLE_MESSAGE)
+    msg = await ctx.send(DOODLE_NEW_MESSAGE)
 
     for emoji in get_dayems(msg.guild):
         await msg.add_reaction(emoji)
