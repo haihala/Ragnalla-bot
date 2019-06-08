@@ -106,11 +106,12 @@ class Doodle(commands.Cog):
         ldm = await self.latest_message(chan)
         if ldm and msg and msg.id == ldm.id:
             reacts = await self.latest_reactions(chan)
-            if any(r.emoji == CHECK_MARK for r in reacts):
-                ready_players = [i.name for i in await find(lambda r: r.emoji == CHECK_MARK, reacts).users().flatten()]
+            checkmarks = find(lambda x: x.emoji==CHECK_MARK, reacts)
+            if checkmarks:
+                ready_players = [i.name for i in await checkmarks.users().flatten()]
                 starting_lineup = await get_starting_lineup(chan.guild)
                 if all(user in ready_players for user in starting_lineup):
-                    await get.invoke(await self.bot.get_context(msg))
+                    await self.get.invoke(await self.bot.get_context(msg))
 
 def setup(bot):
     bot.add_cog(Doodle(bot))
