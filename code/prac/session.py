@@ -1,6 +1,6 @@
 from datetime import datetime
 
-class Prac:
+class Session:
     def __init__(self, time, players):
         self.time = time
         self.players = players
