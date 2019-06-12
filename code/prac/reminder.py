@@ -37,7 +37,11 @@ class Reminder:
                 for checkable in conf:
                     cident = target+str(checkable)
                     if cident not in self.processed[user][ident]:
-                        if (target == "voice" and time()-checkable < session.time) or (target == "ack" and session.msg_time + checkable > time()):
+#                        print(target)
+#                        print(session.time-checkable)
+#                        print(session.msg_time+checkable)
+#                        print(time())
+                        if (target == "voice" and session.time - checkable < time()) or (target == "ack" and session.msg_time + checkable < time()):
                             new_pings.add(session)
                             self.processed[user][ident].add(cident)
                 if user in pings:
