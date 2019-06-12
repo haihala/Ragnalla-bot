@@ -35,8 +35,8 @@ class Prac(commands.Cog):
         timespec = find(get_time, bits)
         if timespec:
             players = [i for i in bits if get_time(i) == None]
-            add_prac(get_time(timespec), players)
-            await ctx.send(PRAC_ADD_OK)
+            msg_time = int((await ctx.send(PRAC_ADD_OK)).created_at.timestamp())
+            add_prac(get_time(timespec), players, msg_time)
             await self.get.invoke(ctx)
         else:
             await ctx.send(PRAC_MISSING_TIME)
@@ -51,12 +51,9 @@ class Prac(commands.Cog):
         timespec = find(get_time, bits)
         players = [i for i in bits if get_time(i) == None]
 
-        try:
-            sub_prac(players, timespec)
-            await ctx.send(PRAC_SUB_OK)
-            await self.get.invoke(ctx)
-        except ValueError as e:
-            await ctx.send(str(e))
+        sub_prac(players, timespec)
+        await ctx.send(PRAC_SUB_OK)
+        await self.get.invoke(ctx)
 
     @prac.command()
     async def move(self, ctx, *, content):
@@ -76,12 +73,9 @@ class Prac(commands.Cog):
             await ctx.send(PRAC_MISSING_TIME)
             return
 
-        try:
-            move_prac(origin, destination)
-            await ctx.send(PRAC_MOVE_OK)
-            await self.get.invoke(ctx)
-        except ValueError as e:
-            await ctx.send(str(e))
+        move_prac(origin, destination)
+        await ctx.send(PRAC_MOVE_OK)
+        await self.get.invoke(ctx)
 
     @prac.command()
     async def get(self, ctx):
@@ -92,11 +86,11 @@ class Prac(commands.Cog):
     @tasks.loop(seconds=5.0)
     async def prac_ack(self):
         self.spamchan = get_spam_channel(self.bot.guilds[0])
-        new_reminders = self.reminder.ack_notifications()
+        new_reminders = self.reminder.notifications("ack")
 
         for user, sessions in new_reminders.items():
             for session in sessions:
-                acknowledged = find(lambda x: x.emoji==CHECK_MARK, bot.get_message(session.msg_id).reaction)
+                acknowledged = find(lambda x: x.emoji==CHECK_MARK, self.bot.get_message(session.msg_id).reaction)
                 if acknowledged:
                     ready_players = ["<@"+str(i.id)+">" for i in await acknowledged.users().flatten()]
                     if user not in ready_players:
@@ -110,10 +104,10 @@ class Prac(commands.Cog):
     @tasks.loop(seconds=5.0)
     async def voice_notification(self):
         self.spamchan = get_spam_channel(self.bot.guilds[0])
-        new_reminders = self.reminder.voice_notifications()
+        new_reminders = self.reminder.notifications("voice")
         # Check if any new_reminders are in voice. If not, ping them.
         for user, pracs in new_reminders.items():
-            if user not in ["<@"+str(i.id)+">" for i in get_voice_channel(bot.guilds[0]).voice_members]:
+            if user not in ["<@"+str(i.id)+">" for i in get_voice_channel(self.bot.guilds[0]).members]:
                 await self.spamchan.send(VOICE_MISSING_USER.format(user))
 
     @voice_notification.before_loop

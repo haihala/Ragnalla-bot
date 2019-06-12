@@ -39,7 +39,7 @@ def get_time(string):
 def get_pracs():
     with open(database) as f:
         tokens = [i.split() for i in f.readlines() if i]
-    return [Session(int(i[0]), i[1:]) for i in tokens if int(i[0]) > time()]
+    return [Session(int(i[0]), i[2:], int(i[1])) for i in tokens if int(i[0]) > time()]
 
 def get_prac(timestamp):
     if not timestamp:
@@ -48,24 +48,23 @@ def get_prac(timestamp):
     else:
         return [i for i in pracs if i.time == target_time][0]
 
-def add_prac(session, players=None):
-    if players:
-        session = Session(session, players)
+def add_prac(session, players, msg_time):
+    session = Session(session, players, msg_time)
     with open(database, 'a') as f:
-        f.write("{} {}\n".format(session.time, " ".join(session.players)))
+        f.write("{} {} {}\n".format(session.time, msg_time, " ".join(session.players)))
 
 def del_prac(timestamp):
     pracs = [i for i in get_pracs() if i.time != timestamp]
     with open(database, 'w') as f:
         for session in pracs:
-            f.write("{} {}\n".format(session.time, " ".join(session.players)))
+            f.write("{} {} {}\n".format(session.time, msg_time, " ".join(session.players)))
 
 def move_prac(origin, destination):
     prac = get_prac(origin)
     if prac:
         del_prac(prac.time)
         prac.time = destination
-        add_prac(prac)
+        add_prac(prac.time, prac.players, prac.msg_time)
 
 def sub_prac(player_diff, target_time=None):
     prac = get_prac(target_time)

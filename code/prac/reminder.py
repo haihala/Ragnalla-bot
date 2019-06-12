@@ -4,6 +4,7 @@ from .prac_db import get_pracs
 from time import time
 from json import dump, load
 from os.path import join as pjoin
+from pathlib import Path
 
 class Reminder:
     def __init__(self):
@@ -11,52 +12,36 @@ class Reminder:
         self.processed = {}
 
     def load(self, account):
-        try:
-            with open(pjoin(CONF_DIR, account+".json"), "r") as f:
-                return load(f)
-        except FileNotFoundError:
-            return {}
+        config =  Path(pjoin(CONF_DIR, account+".json"))
+        if not config.is_file():
+            config = Path(pjoin(CONF_DIR, "default.json"))
+        with config.open() as f:
+            return load(f)
 
     def save(self, account):
         with open(pjoin(CONF_DIR, account+".json"), "w") as f:
             dump(self.conf[account], f)
 
-
-    def check(self, user, session, target):
-        conf = self.load(user)
-        if user not in self.processed:
-            self.processed[user] = {}
-        if target+session.time not in self.processed[user]:
-            self.processed[user][target+session.time] = set()
-
-        new = set()
-        for checkable in conf:
-            if target+checkable not in self.processed[user][target+session.time] and time()-checkable < session.time:
-                new.add(session)
-                self.processed[user][target+session.time].add(target+checkable)
-        return new
-
-    def ack_notifications(self):
+    def notifications(self, target):
         pings = {}
         for session in get_pracs():
             for user in session.players:
-                new_pings = self.check(user, session, "ack")
+                conf = self.load(user)[target]
+                ident = target+str(session.time)
+                if user not in self.processed:
+                    self.processed[user] = {}
+                if ident not in self.processed[user]:
+                    self.processed[user][ident] = set()
+
+                new_pings = set()
+                for checkable in conf:
+                    cident = target+str(checkable)
+                    if cident not in self.processed[user][ident]:
+                        if (target == "voice" and time()-checkable < session.time) or (target == "ack" and session.msg_time + checkable > time()):
+                            new_pings.add(session)
+                            self.processed[user][ident].add(cident)
                 if user in pings:
                     pings[user] = pings[user].union(new_pings)
                 else:
                     pings[user] = new_pings
-        return pings
-
-
-    def voice_notifications(self):
-        pings = {}
-        for session in get_pracs():
-            for user in session.players:
-                new_pings = self.check(user, session, "voice")
-                if user in pings:
-                    pings[user] = pings[user].union(new_pings)
-                else:
-                    pings[user] = new_pings
-        return pings
-
-
+        return {i: pings[i] for i in pings if pings[i]}
